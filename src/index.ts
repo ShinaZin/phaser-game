@@ -1,25 +1,29 @@
-import Phaser from "phaser";
-import { onPageLoad } from "./helpers";
+import Phaser from 'phaser';
 
-function preload(this: Phaser.Scene) {
-  this.load.image("sky", "assets/sky.png");
-  this.load.image("ground", "assets/platform.png");
-  this.load.image("star", "assets/star.png");
-  this.load.image("bomb", "assets/bomb.png");
-  this.load.spritesheet("dude", "assets/dude.png", {
-    frameWidth: 32,
-    frameHeight: 48
-  });
-}
+import { onPageLoad } from './helpers';
+
+import { create } from './create';
+import { preload } from './preload';
+import { update } from './update';
 
 onPageLoad(() => {
   const config: Phaser.Types.Core.GameConfig = {
-    title: "XMas Fox",
-    width: 400,
-    height: 300,
-    backgroundColor: "green",
+    title: 'XMas Fox',
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#aaaaff',
+    physics: {
+      default: 'arcade',
+      arcade: {
+        gravity: { y: 300 },
+        debug: false
+      }
+    },
     scene: {
-      preload
+      preload,
+      create,
+      update
     },
     scale: {
       autoCenter: Phaser.Scale.Center.CENTER_BOTH,
