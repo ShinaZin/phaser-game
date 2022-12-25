@@ -4,9 +4,6 @@
     "module": "commonjs",
     "strict": true,
     "rootDir": "./src",
-    "typeRoots": [
-      "types"
-    ],
     "esModuleInterop": true,
     "moduleResolution": "node"
   }

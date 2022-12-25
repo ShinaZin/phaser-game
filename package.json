@@ -4,15 +4,21 @@
   "description": "Phaser 3 + TS",
   "main": "index.html",
   "scripts": {
-    "start": "parcel index.html --open",
-    "build": "parcel build index.html"
+    "// public //": "public scripts:",
+    "dist": "npm run clean && npm run build && npm run copy",
+    "// private //": "private scripts:",
+    "build": "esbuild --bundle src/index.ts --outfile=dist/index.js",
+    "clean": "rimraf dist",
+    "copy": "copyfiles index.html assets/**/* dist"
   },
   "dependencies": {
-    "phaser": "3.55.2",
-    "typescript": "4.9.4"
+    "phaser": "3.55.2"
   },
+  "keywords": [],
   "devDependencies": {
-    "parcel-bundler": "^1.6.1"
-  },
-  "keywords": []
+    "copyfiles": "^2.4.1",
+    "esbuild": "^0.16.10",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.9.4"
+  }
 }
