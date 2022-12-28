@@ -6,6 +6,7 @@
   "scripts": {
     "// public //": "public scripts:",
     "dist": "npm run clean && npm run build && npm run copy",
+    "watch": "onchange src/** -- npm run build",
     "// private //": "private scripts:",
     "build": "esbuild --bundle src/index.ts --outfile=dist/index.js",
     "clean": "rimraf dist",

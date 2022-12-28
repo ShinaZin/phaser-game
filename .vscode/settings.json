@@ -1,3 +1,4 @@
 {
-  "livePreview.defaultPreviewPath": "d:\\other\\phaser\\dist\\index.html"
+  "livePreview.defaultPreviewPath": "d:\\Dev\\phaser-game\\dist\\index.html",
+  "liveServer.settings.wait": 300
 }
