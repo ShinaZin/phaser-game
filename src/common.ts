@@ -4,8 +4,10 @@ export const enum Sprite {
   DinoRun = 'dino-run',
   DinoHurt = 'dino-hurt',
   DinoDown = 'dino-down',
+  DinoDownAnim = 'dino-down-anim',
 
   Enemy = 'enemy-bird',
+  EnemyFly = 'enemy-dino-fly',
   Obsticle1 = 'obsticle-1',
   Obsticle2 = 'obsticle-2',
   Obsticle3 = 'obsticle-3',

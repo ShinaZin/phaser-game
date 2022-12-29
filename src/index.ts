@@ -6,16 +6,17 @@ import { PreloadScene } from './preload-scene';
 import { onPageLoad } from './helpers';
 
 onPageLoad(() => {
-  const config = {
+  const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     width: 1000,
     height: 340,
     pixelArt: true,
-    transparent: true,
+    transparent: false,
+    backgroundColor: '#eeeeee',
     physics: {
       default: 'arcade',
       arcade: {
-        debug: true
+        debug: false
       }
     },
     scene: [PreloadScene, PlayScene]
