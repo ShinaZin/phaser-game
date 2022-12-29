@@ -1,6 +1,7 @@
 import Phaser, { GameObjects } from 'phaser';
 import { Sprite } from './common';
 import { asSprite } from './helpers';
+import { Snow } from './snow';
 
 export class PlayScene extends Phaser.Scene {
   private gameSpeed = 0;
@@ -16,6 +17,7 @@ export class PlayScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private highScoreText!: Phaser.GameObjects.Text;
   private environment!: Phaser.GameObjects.Group;
+  private snow!: Snow;
   private gameOverScreen!: Phaser.GameObjects.Container;
   private gameOverText!: Phaser.GameObjects.Image;
   private restart!: Phaser.GameObjects.Image;
@@ -69,6 +71,8 @@ export class PlayScene extends Phaser.Scene {
     ]);
     this.environment.setAlpha(0);
 
+    this.snow = new Snow(this);
+
     this.gameOverScreen = this.add.container(width / 2, height / 2 - 50).setAlpha(0)
     this.gameOverText = this.add.image(0, 0, Sprite.GameOver);
     this.restart = this.add.image(0, 80, Sprite.Restart).setInteractive();
@@ -96,6 +100,7 @@ export class PlayScene extends Phaser.Scene {
       this.highScoreText.setAlpha(1);
 
       this.physics.pause();
+      this.snow.destroy();
       this.isGameRunning = false;
       this.anims.pauseAll();
       this.dino.setTexture(Sprite.DinoHurt);
@@ -263,6 +268,7 @@ export class PlayScene extends Phaser.Scene {
     this.ground.tilePositionX += this.gameSpeed;
     Phaser.Actions.IncX(this.obsticles.getChildren(), -this.gameSpeed);
     Phaser.Actions.IncX(this.environment.getChildren(), -0.5);
+    this.snow.update();
 
     this.respawnTime += delta * this.gameSpeed * 0.08;
     if (this.respawnTime >= 1500) {
