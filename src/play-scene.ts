@@ -1,4 +1,4 @@
-import Phaser, { GameObjects } from 'phaser';
+import Phaser from 'phaser';
 import { Sprite } from './common';
 import { asSprite } from './helpers';
 import { Snow } from './snow';
@@ -17,11 +17,13 @@ export class PlayScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private highScoreText!: Phaser.GameObjects.Text;
   private environment!: Phaser.GameObjects.Group;
+  private obsticles!: Phaser.Physics.Arcade.Group;
   private snow!: Snow;
   private gameOverScreen!: Phaser.GameObjects.Container;
   private gameOverText!: Phaser.GameObjects.Image;
-  private restart!: Phaser.GameObjects.Image;
-  private obsticles!: Phaser.Physics.Arcade.Group;
+  private buttonRestart!: Phaser.GameObjects.Image;
+  private buttonJump!: Phaser.GameObjects.Rectangle;
+  private buttonCrouch!: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super('PlayScene');
@@ -57,11 +59,11 @@ export class PlayScene extends Phaser.Scene {
     const textStyle = { color: '#535353', font: '900 35px Courier', resolution: 5 };
     this.scoreText = this.add.text(width, 0, '00000', textStyle)
       .setOrigin(1, 0)
-      .setAlpha(0);
+      .setVisible(false);
 
     this.highScoreText = this.add.text(0, 0, '00000', textStyle)
       .setOrigin(1, 0)
-      .setAlpha(0);
+      .setVisible(false);
 
     this.environment = this.add.group();
     this.environment.addMultiple([
@@ -69,16 +71,14 @@ export class PlayScene extends Phaser.Scene {
       this.add.image(width - 80, 80, Sprite.Cloud),
       this.add.image((width / 1.3), 100, Sprite.Cloud)
     ]);
-    this.environment.setAlpha(0);
+    this.environment.setVisible(false);
 
     this.snow = new Snow(this);
 
-    this.gameOverScreen = this.add.container(width / 2, height / 2 - 50).setAlpha(0)
+    this.gameOverScreen = this.add.container(width / 2, height / 2 - 50).setVisible(false)
     this.gameOverText = this.add.image(0, 0, Sprite.GameOver);
-    this.restart = this.add.image(0, 80, Sprite.Restart).setInteractive();
-    this.gameOverScreen.add([
-      this.gameOverText, this.restart
-    ])
+    this.buttonRestart = this.add.image(0, 80, Sprite.Restart).setInteractive();
+    this.gameOverScreen.add([ this.gameOverText, this.buttonRestart ])
 
     this.obsticles = this.physics.add.group();
 
@@ -97,7 +97,7 @@ export class PlayScene extends Phaser.Scene {
       const newScore = Number(this.scoreText.text) > Number(highScore) ? this.scoreText.text : highScore;
 
       this.highScoreText.setText('HI ' + newScore);
-      this.highScoreText.setAlpha(1);
+      this.highScoreText.setVisible(true);
 
       this.physics.pause();
       this.snow.destroy();
@@ -106,7 +106,9 @@ export class PlayScene extends Phaser.Scene {
       this.dino.setTexture(Sprite.DinoHurt);
       this.respawnTime = 0;
       this.gameSpeed = 10;
-      this.gameOverScreen.setAlpha(1);
+      this.gameOverScreen.setVisible(true);
+      this.buttonCrouch.disableInteractive();
+      this.buttonJump.disableInteractive();
       this.score = 0;
       this.hitSound.play();
     }, undefined, this);
@@ -138,8 +140,8 @@ export class PlayScene extends Phaser.Scene {
             this.ground.width = width;
             this.isGameRunning = true;
             this.dino.setVelocityX(0);
-            this.scoreText.setAlpha(1);
-            this.environment.setAlpha(1);
+            this.scoreText.setVisible(true);
+            this.environment.setVisible(true);
             startEvent.remove();
           }
         }
@@ -204,40 +206,62 @@ export class PlayScene extends Phaser.Scene {
   }
 
   handleInputs() {
-    this.restart.on('pointerdown', () => {
-      this.dino.setVelocityY(0);
-      this.dino.body.setSize(44, 92)
-      this.dino.body.offset.y = 0;
-      this.physics.resume();
-      this.obsticles.clear(true, true);
-      this.isGameRunning = true;
-      this.gameOverScreen.setAlpha(0);
-      this.anims.resumeAll();
-    })
+    // Restart
+    this.buttonRestart.on('pointerdown', () => this.actionRestartGame());
+    this.input.keyboard.on('keydown-R', () => this.actionRestartGame())
+    // Jump
+    this.input.keyboard.on('keydown-SPACE', () => this.actionJump())
+    // Crouch
+    this.input.keyboard.on('keydown-DOWN', () => this.actionCrouch());
+    this.input.keyboard.on('keyup-DOWN', () => this.actionUncrouch());
 
-    this.input.keyboard.on('keydown-SPACE', () => {
-      if (!this.dino.body.onFloor() || this.dino.body.velocity.x > 0) { return; }
+    // Sensor controls
+    const { height, width } = this.getGameSize();
+    this.buttonJump = this.add.rectangle(0, 0, width / 2, height).setInteractive().setOrigin(0)
+      .on('pointerdown', () => this.actionJump());
+    this.buttonCrouch = this.add.rectangle(width / 2, 0, width / 2, height).setInteractive().setOrigin(0)
+      .on('pointerdown', () => this.actionCrouch())
+      .on('pointerup', () => this.actionUncrouch());
+  }
 
-      this.jumpSound.play();
-      this.dino.body.setSize(44, 92)
-      this.dino.body.offset.y = 0;
-      this.dino.setVelocityY(-1500);
-      this.dino.setTexture(Sprite.Dino, 0);
-    })
+  actionRestartGame() {
+    this.dino.setVelocityY(0);
+    this.dino.body.setSize(44, 92);
+    this.dino.body.offset.y = 0;
+    this.physics.resume();
+    this.obsticles.clear(true, true);
+    this.isGameRunning = true;
+    this.gameOverScreen.setVisible(false);
+    this.anims.resumeAll();
+    this.buttonCrouch.setInteractive();
+    this.buttonJump.setInteractive();
+  }
 
-    this.input.keyboard.on('keydown-DOWN', () => {
-      if (!this.dino.body.onFloor() || !this.isGameRunning) { return; }
+  actionJump() {
+	  if (!this.dino.body.onFloor() || this.dino.body.velocity.x > 0) {
+	    return;
+	  }
+	  this.jumpSound.play();
+	  this.dino.body.setSize(44, 92)
+	  this.dino.body.offset.y = 0;
+	  this.dino.setVelocityY(-1500);
+	  this.dino.setTexture(Sprite.Dino, 0);
+}
+  
+  actionCrouch() {
+    if (!this.dino.body.onFloor() || !this.isGameRunning) {
+      return;
+    }
+    this.dino.body.setSize(44, 58)
+    this.dino.body.offset.y = 34;
+  }
 
-      this.dino.body.setSize(44, 58)
-      this.dino.body.offset.y = 34;
-    })
-
-    this.input.keyboard.on('keyup-DOWN', () => {
-      if ((this.score !== 0 && !this.isGameRunning)) { return; }
-
-      this.dino.body.setSize(44, 92)
-      this.dino.body.offset.y = 0;
-    })
+  actionUncrouch() {
+    if (this.score !== 0 && !this.isGameRunning) {
+      return;
+    }
+    this.dino.body.setSize(44, 92)
+    this.dino.body.offset.y = 0;
   }
 
   placeObsticle() {
