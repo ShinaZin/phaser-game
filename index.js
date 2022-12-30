@@ -55487,7 +55487,7 @@
             module2.exports = "volume";
           },
           function(module2, exports2, __webpack_require__) {
-            var GameObjects2 = {
+            var GameObjects = {
               Events: __webpack_require__(75),
               DisplayList: __webpack_require__(1012),
               GameObjectCreator: __webpack_require__(16),
@@ -55586,20 +55586,20 @@
               }
             };
             if (true) {
-              GameObjects2.Shader = __webpack_require__(229);
-              GameObjects2.Mesh = __webpack_require__(230);
-              GameObjects2.PointLight = __webpack_require__(150);
-              GameObjects2.Factories.Shader = __webpack_require__(1184);
-              GameObjects2.Factories.Mesh = __webpack_require__(1185);
-              GameObjects2.Factories.PointLight = __webpack_require__(1186);
-              GameObjects2.Creators.Shader = __webpack_require__(1187);
-              GameObjects2.Creators.Mesh = __webpack_require__(1188);
-              GameObjects2.Creators.PointLight = __webpack_require__(1189);
-              GameObjects2.Light = __webpack_require__(481);
-              GameObjects2.LightsManager = __webpack_require__(482);
-              GameObjects2.LightsPlugin = __webpack_require__(1190);
+              GameObjects.Shader = __webpack_require__(229);
+              GameObjects.Mesh = __webpack_require__(230);
+              GameObjects.PointLight = __webpack_require__(150);
+              GameObjects.Factories.Shader = __webpack_require__(1184);
+              GameObjects.Factories.Mesh = __webpack_require__(1185);
+              GameObjects.Factories.PointLight = __webpack_require__(1186);
+              GameObjects.Creators.Shader = __webpack_require__(1187);
+              GameObjects.Creators.Mesh = __webpack_require__(1188);
+              GameObjects.Creators.PointLight = __webpack_require__(1189);
+              GameObjects.Light = __webpack_require__(481);
+              GameObjects.LightsManager = __webpack_require__(482);
+              GameObjects.LightsPlugin = __webpack_require__(1190);
             }
-            module2.exports = GameObjects2;
+            module2.exports = GameObjects;
           },
           function(module2, exports2, __webpack_require__) {
             var Class = __webpack_require__(0);
@@ -73333,23 +73333,20 @@
       this.ground = this.add.tileSprite(0, height, 88, 26, "ground" /* Ground */).setOrigin(0, 1);
       this.dino = this.physics.add.sprite(0, height, "dino-idle" /* DinoIdle */).setCollideWorldBounds(true).setGravityY(5e3).setBodySize(44, 92).setDepth(1).setOrigin(0, 1);
       const textStyle = { color: "#535353", font: "900 35px Courier", resolution: 5 };
-      this.scoreText = this.add.text(width, 0, "00000", textStyle).setOrigin(1, 0).setAlpha(0);
-      this.highScoreText = this.add.text(0, 0, "00000", textStyle).setOrigin(1, 0).setAlpha(0);
+      this.scoreText = this.add.text(width, 0, "00000", textStyle).setOrigin(1, 0).setVisible(false);
+      this.highScoreText = this.add.text(0, 0, "00000", textStyle).setOrigin(1, 0).setVisible(false);
       this.environment = this.add.group();
       this.environment.addMultiple([
         this.add.image(width / 2, 170, "cloud" /* Cloud */),
         this.add.image(width - 80, 80, "cloud" /* Cloud */),
         this.add.image(width / 1.3, 100, "cloud" /* Cloud */)
       ]);
-      this.environment.setAlpha(0);
+      this.environment.setVisible(false);
       this.snow = new Snow(this);
-      this.gameOverScreen = this.add.container(width / 2, height / 2 - 50).setAlpha(0);
+      this.gameOverScreen = this.add.container(width / 2, height / 2 - 50).setVisible(false);
       this.gameOverText = this.add.image(0, 0, "game-over" /* GameOver */);
-      this.restart = this.add.image(0, 80, "restart" /* Restart */).setInteractive();
-      this.gameOverScreen.add([
-        this.gameOverText,
-        this.restart
-      ]);
+      this.buttonRestart = this.add.image(0, 80, "restart" /* Restart */).setInteractive();
+      this.gameOverScreen.add([this.gameOverText, this.buttonRestart]);
       this.obsticles = this.physics.add.group();
       this.initAnims();
       this.initStartTrigger();
@@ -73363,7 +73360,7 @@
         const highScore = this.highScoreText.text.substr(this.highScoreText.text.length - 5);
         const newScore = Number(this.scoreText.text) > Number(highScore) ? this.scoreText.text : highScore;
         this.highScoreText.setText("HI " + newScore);
-        this.highScoreText.setAlpha(1);
+        this.highScoreText.setVisible(true);
         this.physics.pause();
         this.snow.destroy();
         this.isGameRunning = false;
@@ -73371,7 +73368,9 @@
         this.dino.setTexture("dino-hurt" /* DinoHurt */);
         this.respawnTime = 0;
         this.gameSpeed = 10;
-        this.gameOverScreen.setAlpha(1);
+        this.gameOverScreen.setVisible(true);
+        this.buttonCrouch.disableInteractive();
+        this.buttonJump.disableInteractive();
         this.score = 0;
         this.hitSound.play();
       }, void 0, this);
@@ -73398,8 +73397,8 @@
               this.ground.width = width;
               this.isGameRunning = true;
               this.dino.setVelocityX(0);
-              this.scoreText.setAlpha(1);
-              this.environment.setAlpha(1);
+              this.scoreText.setVisible(true);
+              this.environment.setVisible(true);
               startEvent.remove();
             }
           }
@@ -73456,40 +73455,50 @@
       });
     }
     handleInputs() {
-      this.restart.on("pointerdown", () => {
-        this.dino.setVelocityY(0);
-        this.dino.body.setSize(44, 92);
-        this.dino.body.offset.y = 0;
-        this.physics.resume();
-        this.obsticles.clear(true, true);
-        this.isGameRunning = true;
-        this.gameOverScreen.setAlpha(0);
-        this.anims.resumeAll();
-      });
-      this.input.keyboard.on("keydown-SPACE", () => {
-        if (!this.dino.body.onFloor() || this.dino.body.velocity.x > 0) {
-          return;
-        }
-        this.jumpSound.play();
-        this.dino.body.setSize(44, 92);
-        this.dino.body.offset.y = 0;
-        this.dino.setVelocityY(-1500);
-        this.dino.setTexture("dino" /* Dino */, 0);
-      });
-      this.input.keyboard.on("keydown-DOWN", () => {
-        if (!this.dino.body.onFloor() || !this.isGameRunning) {
-          return;
-        }
-        this.dino.body.setSize(44, 58);
-        this.dino.body.offset.y = 34;
-      });
-      this.input.keyboard.on("keyup-DOWN", () => {
-        if (this.score !== 0 && !this.isGameRunning) {
-          return;
-        }
-        this.dino.body.setSize(44, 92);
-        this.dino.body.offset.y = 0;
-      });
+      this.buttonRestart.on("pointerdown", () => this.actionRestartGame());
+      this.input.keyboard.on("keydown-R", () => this.actionRestartGame());
+      this.input.keyboard.on("keydown-SPACE", () => this.actionJump());
+      this.input.keyboard.on("keydown-DOWN", () => this.actionCrouch());
+      this.input.keyboard.on("keyup-DOWN", () => this.actionUncrouch());
+      const { height, width } = this.getGameSize();
+      this.buttonJump = this.add.rectangle(0, 0, width / 2, height).setInteractive().setOrigin(0).on("pointerdown", () => this.actionJump());
+      this.buttonCrouch = this.add.rectangle(width / 2, 0, width / 2, height).setInteractive().setOrigin(0).on("pointerdown", () => this.actionCrouch()).on("pointerup", () => this.actionUncrouch());
+    }
+    actionRestartGame() {
+      this.dino.setVelocityY(0);
+      this.dino.body.setSize(44, 92);
+      this.dino.body.offset.y = 0;
+      this.physics.resume();
+      this.obsticles.clear(true, true);
+      this.isGameRunning = true;
+      this.gameOverScreen.setVisible(false);
+      this.anims.resumeAll();
+      this.buttonCrouch.setInteractive();
+      this.buttonJump.setInteractive();
+    }
+    actionJump() {
+      if (!this.dino.body.onFloor() || this.dino.body.velocity.x > 0) {
+        return;
+      }
+      this.jumpSound.play();
+      this.dino.body.setSize(44, 92);
+      this.dino.body.offset.y = 0;
+      this.dino.setVelocityY(-1500);
+      this.dino.setTexture("dino" /* Dino */, 0);
+    }
+    actionCrouch() {
+      if (!this.dino.body.onFloor() || !this.isGameRunning) {
+        return;
+      }
+      this.dino.body.setSize(44, 58);
+      this.dino.body.offset.y = 34;
+    }
+    actionUncrouch() {
+      if (this.score !== 0 && !this.isGameRunning) {
+        return;
+      }
+      this.dino.body.setSize(44, 92);
+      this.dino.body.offset.y = 0;
     }
     placeObsticle() {
       const { height, width } = this.getGameSize();
