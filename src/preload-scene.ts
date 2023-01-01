@@ -12,6 +12,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.audio('jump', 'assets/jump.m4a');
     this.load.audio('hit', 'assets/hit.m4a');
     this.load.audio('reach', 'assets/reach.m4a');
+    this.load.audio('bonus', 'assets/bonus.wav');
 
     this.load.image(Sprite.Ground, 'assets/ground.png');
     this.load.image(Sprite.DinoIdle, 'assets/dino-idle.png');
@@ -19,14 +20,6 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image(Sprite.Restart, 'assets/restart.png');
     this.load.image(Sprite.GameOver, 'assets/game-over.png');
     this.load.image(Sprite.Cloud, 'assets/cloud.png');
-
-    this.load.spritesheet(Sprite.Star, 'assets/stars.png', {
-      frameWidth: 9, frameHeight: 9
-    });
-
-    this.load.spritesheet(Sprite.Moon, 'assets/moon.png', {
-      frameWidth: 20, frameHeight: 40
-    });
 
     this.load.spritesheet(Sprite.Dino, 'assets/dino-run.png', {
       frameWidth: 88,
@@ -49,6 +42,8 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image(Sprite.Obsticle4, 'assets/cactuses_big_1.png')
     this.load.image(Sprite.Obsticle5, 'assets/cactuses_big_2.png')
     this.load.image(Sprite.Obsticle6, 'assets/cactuses_big_3.png')
+
+    this.load.image(Sprite.Bonus, 'assets/bonus.png')
   }
 
   create() {

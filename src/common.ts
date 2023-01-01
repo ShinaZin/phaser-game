@@ -15,10 +15,10 @@ export const enum Sprite {
   Obsticle5 = 'obsticle-5',
   Obsticle6 = 'obsticle-6',
 
+  Bonus = 'bonus',
+
   Ground = 'ground',
   Cloud = 'cloud',
-  Star = 'star',
-  Moon = 'moon',
 
   Restart = 'restart',
   GameOver = 'game-over',

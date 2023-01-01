@@ -11,13 +11,19 @@ export class PlayScene extends Phaser.Scene {
   private jumpSound!: Phaser.Sound.BaseSound;
   private hitSound!: Phaser.Sound.BaseSound;
   private reachSound!: Phaser.Sound.BaseSound;
+  private bonusSound!: Phaser.Sound.BaseSound;
   private startTrigger!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private ground!: Phaser.GameObjects.TileSprite;
   private dino!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+
   private scoreText!: Phaser.GameObjects.Text;
   private highScoreText!: Phaser.GameObjects.Text;
+  private bonusText!: Phaser.GameObjects.Text;
+
   private environment!: Phaser.GameObjects.Group;
   private obsticles!: Phaser.Physics.Arcade.Group;
+  private bonuses!: Phaser.Physics.Arcade.Group;
+  private bonusTimer?: Phaser.Time.TimerEvent;
   private snow!: Snow;
   private gameOverScreen!: Phaser.GameObjects.Container;
   private gameOverText!: Phaser.GameObjects.Image;
@@ -46,6 +52,7 @@ export class PlayScene extends Phaser.Scene {
     this.jumpSound = this.sound.add('jump', { volume: 0.2 });
     this.hitSound = this.sound.add('hit', { volume: 0.2 });
     this.reachSound = this.sound.add('reach', { volume: 0.2 });
+    this.bonusSound = this.sound.add('bonus', { volume: 0.2 });
 
     this.startTrigger = this.physics.add.sprite(0, 40, '').setOrigin(0, 1).setImmovable().setVisible(false);
     this.ground = this.add.tileSprite(0, height, 88, 26, Sprite.Ground).setOrigin(0, 1)
@@ -64,6 +71,9 @@ export class PlayScene extends Phaser.Scene {
     this.highScoreText = this.add.text(0, 0, '00000', textStyle)
       .setOrigin(1, 0)
       .setVisible(false);
+    
+    this.bonusText = this.add.text(0, 0, '', textStyle)
+      .setVisible(false);
 
     this.environment = this.add.group();
     this.environment.addMultiple([
@@ -81,6 +91,7 @@ export class PlayScene extends Phaser.Scene {
     this.gameOverScreen.add([ this.gameOverText, this.buttonRestart ])
 
     this.obsticles = this.physics.add.group();
+    this.bonuses = this.physics.add.group();
 
     this.initAnims();
     this.initStartTrigger();
@@ -90,28 +101,8 @@ export class PlayScene extends Phaser.Scene {
   }
 
   initColliders() {
-    this.physics.add.collider(this.dino, this.obsticles, () => {
-      this.highScoreText.x = this.scoreText.x - this.scoreText.width - 20;
-
-      const highScore = this.highScoreText.text.substr(this.highScoreText.text.length - 5);
-      const newScore = Number(this.scoreText.text) > Number(highScore) ? this.scoreText.text : highScore;
-
-      this.highScoreText.setText('HI ' + newScore);
-      this.highScoreText.setVisible(true);
-
-      this.physics.pause();
-      this.snow.destroy();
-      this.isGameRunning = false;
-      this.anims.pauseAll();
-      this.dino.setTexture(Sprite.DinoHurt);
-      this.respawnTime = 0;
-      this.gameSpeed = 10;
-      this.gameOverScreen.setVisible(true);
-      this.buttonCrouch.disableInteractive();
-      this.buttonJump.disableInteractive();
-      this.score = 0;
-      this.hitSound.play();
-    }, undefined, this);
+    this.physics.add.collider(this.dino, this.obsticles, this.handleGameOver, undefined, this);
+    this.physics.add.overlap(this.dino, this.bonuses, this.handleBonusPick, undefined, this);
   }
 
   initStartTrigger() {
@@ -205,6 +196,65 @@ export class PlayScene extends Phaser.Scene {
     })
   }
 
+  handleGameOver() {
+    if (this.dino.alpha != 1) {
+      return;
+    }
+
+    this.highScoreText.x = this.scoreText.x - this.scoreText.width - 20;
+
+    const highScore = this.highScoreText.text.substr(this.highScoreText.text.length - 5);
+    const newScore = Number(this.scoreText.text) > Number(highScore) ? this.scoreText.text : highScore;
+
+    this.highScoreText.setText('HI ' + newScore);
+    this.highScoreText.setVisible(true);
+
+    this.physics.pause();
+    this.snow.destroy();
+    this.isGameRunning = false;
+    this.anims.pauseAll();
+    this.dino.setTexture(Sprite.DinoHurt);
+    this.respawnTime = 0;
+    this.gameSpeed = 10;
+    this.gameOverScreen.setVisible(true);
+    this.buttonCrouch.disableInteractive();
+    this.buttonJump.disableInteractive();
+    this.score = 0;
+    this.hitSound.play();
+  }
+
+  handleBonusPick(dino: Phaser.GameObjects.GameObject, bonus: Phaser.GameObjects.GameObject) {
+    this.bonusTimer?.remove();
+    this.bonusTimer = this.time.addEvent({
+      repeat: 9,
+      delay: 1000,
+      callback: () => {
+        const remaining = this.bonusTimer!.getOverallRemainingSeconds();
+        if (remaining == 3) {
+          this.tweens.add({
+            targets: this.bonusText,
+            duration: 500,
+            repeat: 5,
+            alpha: 0.2,
+            yoyo: true,
+          })
+        }
+        if (remaining == 0) {
+          this.dino.alpha = 1
+          this.bonusText.setVisible(false);
+        } else {
+          this.bonusText.setText(`BONUS: ${remaining}sec`);
+        }
+      }
+    })
+
+    this.dino.alpha = 0.5;
+    this.bonusSound.play();
+    this.bonusText.setText(`BONUS: ${this.bonusTimer.getOverallRemainingSeconds()}sec`);
+    this.bonusText.setVisible(true);
+    bonus.destroy();
+  }
+
   handleInputs() {
     // Restart
     this.buttonRestart.on('pointerdown', () => this.actionRestartGame());
@@ -286,11 +336,22 @@ export class PlayScene extends Phaser.Scene {
     obsticle.setImmovable();
   }
 
+  placeBonus() {
+    const { height, width } = this.getGameSize();
+    const distance = Phaser.Math.Between(700, 1200);
+
+    const bonus: Phaser.Physics.Arcade.Sprite = this.bonuses
+        .create(width + distance, height - Phaser.Math.Between(180, 250), Sprite.Bonus)
+        .setOrigin(0, 1)
+    bonus.body.setSize(undefined, bonus.body.height / 2);
+  }
+
   update(time: number, delta: number) {
     if (!this.isGameRunning) { return; }
 
     this.ground.tilePositionX += this.gameSpeed;
     Phaser.Actions.IncX(this.obsticles.getChildren(), -this.gameSpeed);
+    Phaser.Actions.IncX(this.bonuses.getChildren(), -this.gameSpeed);
     Phaser.Actions.IncX(this.environment.getChildren(), -0.5);
     this.snow.update();
 
@@ -300,9 +361,22 @@ export class PlayScene extends Phaser.Scene {
       this.respawnTime = 0;
     }
 
+    if (this.respawnTime % 900 == 0) {
+      // 20% chance to spawn bonus
+      if (Phaser.Utils.Array.GetRandom([1, 0, 0, 0, 0])) {
+        this.placeBonus();
+      }
+    }
+
     this.obsticles.getChildren().forEach(obsticle => {
       if (asSprite(obsticle).getBounds().right < 0) {
         this.obsticles.killAndHide(obsticle);
+      }
+    })
+
+    this.bonuses.getChildren().forEach(bonus => {
+      if (asSprite(bonus).getBounds().right < 0) {
+        this.bonuses.killAndHide(bonus);
       }
     })
 
