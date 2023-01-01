@@ -73329,12 +73329,14 @@
       this.jumpSound = this.sound.add("jump", { volume: 0.2 });
       this.hitSound = this.sound.add("hit", { volume: 0.2 });
       this.reachSound = this.sound.add("reach", { volume: 0.2 });
+      this.bonusSound = this.sound.add("bonus", { volume: 0.2 });
       this.startTrigger = this.physics.add.sprite(0, 40, "").setOrigin(0, 1).setImmovable().setVisible(false);
       this.ground = this.add.tileSprite(0, height, 88, 26, "ground" /* Ground */).setOrigin(0, 1);
       this.dino = this.physics.add.sprite(0, height, "dino-idle" /* DinoIdle */).setCollideWorldBounds(true).setGravityY(5e3).setBodySize(44, 92).setDepth(1).setOrigin(0, 1);
       const textStyle = { color: "#535353", font: "900 35px Courier", resolution: 5 };
       this.scoreText = this.add.text(width, 0, "00000", textStyle).setOrigin(1, 0).setVisible(false);
       this.highScoreText = this.add.text(0, 0, "00000", textStyle).setOrigin(1, 0).setVisible(false);
+      this.bonusText = this.add.text(0, 0, "", textStyle).setVisible(false);
       this.environment = this.add.group();
       this.environment.addMultiple([
         this.add.image(width / 2, 170, "cloud" /* Cloud */),
@@ -73348,6 +73350,7 @@
       this.buttonRestart = this.add.image(0, 80, "restart" /* Restart */).setInteractive();
       this.gameOverScreen.add([this.gameOverText, this.buttonRestart]);
       this.obsticles = this.physics.add.group();
+      this.bonuses = this.physics.add.group();
       this.initAnims();
       this.initStartTrigger();
       this.initColliders();
@@ -73355,25 +73358,8 @@
       this.handleScore();
     }
     initColliders() {
-      this.physics.add.collider(this.dino, this.obsticles, () => {
-        this.highScoreText.x = this.scoreText.x - this.scoreText.width - 20;
-        const highScore = this.highScoreText.text.substr(this.highScoreText.text.length - 5);
-        const newScore = Number(this.scoreText.text) > Number(highScore) ? this.scoreText.text : highScore;
-        this.highScoreText.setText("HI " + newScore);
-        this.highScoreText.setVisible(true);
-        this.physics.pause();
-        this.snow.destroy();
-        this.isGameRunning = false;
-        this.anims.pauseAll();
-        this.dino.setTexture("dino-hurt" /* DinoHurt */);
-        this.respawnTime = 0;
-        this.gameSpeed = 10;
-        this.gameOverScreen.setVisible(true);
-        this.buttonCrouch.disableInteractive();
-        this.buttonJump.disableInteractive();
-        this.score = 0;
-        this.hitSound.play();
-      }, void 0, this);
+      this.physics.add.collider(this.dino, this.obsticles, this.handleGameOver, void 0, this);
+      this.physics.add.overlap(this.dino, this.bonuses, this.handleBonusPick, void 0, this);
     }
     initStartTrigger() {
       const { height, width } = this.getGameSize();
@@ -73454,6 +73440,59 @@
         }
       });
     }
+    handleGameOver() {
+      if (this.dino.alpha != 1) {
+        return;
+      }
+      this.highScoreText.x = this.scoreText.x - this.scoreText.width - 20;
+      const highScore = this.highScoreText.text.substr(this.highScoreText.text.length - 5);
+      const newScore = Number(this.scoreText.text) > Number(highScore) ? this.scoreText.text : highScore;
+      this.highScoreText.setText("HI " + newScore);
+      this.highScoreText.setVisible(true);
+      this.physics.pause();
+      this.snow.destroy();
+      this.isGameRunning = false;
+      this.anims.pauseAll();
+      this.dino.setTexture("dino-hurt" /* DinoHurt */);
+      this.respawnTime = 0;
+      this.gameSpeed = 10;
+      this.gameOverScreen.setVisible(true);
+      this.buttonCrouch.disableInteractive();
+      this.buttonJump.disableInteractive();
+      this.score = 0;
+      this.hitSound.play();
+    }
+    handleBonusPick(dino, bonus) {
+      var _a;
+      (_a = this.bonusTimer) == null ? void 0 : _a.remove();
+      this.bonusTimer = this.time.addEvent({
+        repeat: 9,
+        delay: 1e3,
+        callback: () => {
+          const remaining = this.bonusTimer.getOverallRemainingSeconds();
+          if (remaining == 3) {
+            this.tweens.add({
+              targets: this.bonusText,
+              duration: 500,
+              repeat: 5,
+              alpha: 0.2,
+              yoyo: true
+            });
+          }
+          if (remaining == 0) {
+            this.dino.alpha = 1;
+            this.bonusText.setVisible(false);
+          } else {
+            this.bonusText.setText(`BONUS: ${remaining}sec`);
+          }
+        }
+      });
+      this.dino.alpha = 0.5;
+      this.bonusSound.play();
+      this.bonusText.setText(`BONUS: ${this.bonusTimer.getOverallRemainingSeconds()}sec`);
+      this.bonusText.setVisible(true);
+      bonus.destroy();
+    }
     handleInputs() {
       this.buttonRestart.on("pointerdown", () => this.actionRestartGame());
       this.input.keyboard.on("keydown-R", () => this.actionRestartGame());
@@ -73515,12 +73554,19 @@
       }
       obsticle.setImmovable();
     }
+    placeBonus() {
+      const { height, width } = this.getGameSize();
+      const distance = import_phaser.default.Math.Between(700, 1200);
+      const bonus = this.bonuses.create(width + distance, height - import_phaser.default.Math.Between(180, 250), "bonus" /* Bonus */).setOrigin(0, 1);
+      bonus.body.setSize(void 0, bonus.body.height / 2);
+    }
     update(time, delta) {
       if (!this.isGameRunning) {
         return;
       }
       this.ground.tilePositionX += this.gameSpeed;
       import_phaser.default.Actions.IncX(this.obsticles.getChildren(), -this.gameSpeed);
+      import_phaser.default.Actions.IncX(this.bonuses.getChildren(), -this.gameSpeed);
       import_phaser.default.Actions.IncX(this.environment.getChildren(), -0.5);
       this.snow.update();
       this.respawnTime += delta * this.gameSpeed * 0.08;
@@ -73528,9 +73574,19 @@
         this.placeObsticle();
         this.respawnTime = 0;
       }
+      if (this.respawnTime % 900 == 0) {
+        if (import_phaser.default.Utils.Array.GetRandom([1, 0, 0, 0, 0])) {
+          this.placeBonus();
+        }
+      }
       this.obsticles.getChildren().forEach((obsticle) => {
         if (asSprite(obsticle).getBounds().right < 0) {
           this.obsticles.killAndHide(obsticle);
+        }
+      });
+      this.bonuses.getChildren().forEach((bonus) => {
+        if (asSprite(bonus).getBounds().right < 0) {
+          this.bonuses.killAndHide(bonus);
         }
       });
       this.environment.getChildren().forEach((env) => {
@@ -73558,20 +73614,13 @@
       this.load.audio("jump", "assets/jump.m4a");
       this.load.audio("hit", "assets/hit.m4a");
       this.load.audio("reach", "assets/reach.m4a");
+      this.load.audio("bonus", "assets/bonus.wav");
       this.load.image("ground" /* Ground */, "assets/ground.png");
       this.load.image("dino-idle" /* DinoIdle */, "assets/dino-idle.png");
       this.load.image("dino-hurt" /* DinoHurt */, "assets/dino-hurt.png");
       this.load.image("restart" /* Restart */, "assets/restart.png");
       this.load.image("game-over" /* GameOver */, "assets/game-over.png");
       this.load.image("cloud" /* Cloud */, "assets/cloud.png");
-      this.load.spritesheet("star" /* Star */, "assets/stars.png", {
-        frameWidth: 9,
-        frameHeight: 9
-      });
-      this.load.spritesheet("moon" /* Moon */, "assets/moon.png", {
-        frameWidth: 20,
-        frameHeight: 40
-      });
       this.load.spritesheet("dino" /* Dino */, "assets/dino-run.png", {
         frameWidth: 88,
         frameHeight: 94
@@ -73590,6 +73639,7 @@
       this.load.image("obsticle-4" /* Obsticle4 */, "assets/cactuses_big_1.png");
       this.load.image("obsticle-5" /* Obsticle5 */, "assets/cactuses_big_2.png");
       this.load.image("obsticle-6" /* Obsticle6 */, "assets/cactuses_big_3.png");
+      this.load.image("bonus" /* Bonus */, "assets/bonus.png");
     }
     create() {
       this.scene.start("PlayScene");
